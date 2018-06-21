@@ -2,6 +2,7 @@
 .vs/
 *.VC.opendb
 *.VC.db
+
 # Build outputs
 bin/
 build/
@@ -10,5 +11,9 @@ Debug/
 Release/
 ipch/
 *.class
+
 # Logs
 *.log
+
+# Tests
+Java/src/tests

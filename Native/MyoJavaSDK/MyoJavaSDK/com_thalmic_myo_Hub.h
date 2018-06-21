@@ -59,6 +59,22 @@ extern "C" {
 	JNIEXPORT jboolean JNICALL Java_com_thalmic_myo_Hub__1waitForMyo
 	(JNIEnv *, jobject, jint);
 
+	/*
+	* Class:     com_thalmic_myo_Hub
+	* Method:    _addDeviceListener
+	* Signature: (Lcom/thalmic/myo/DeviceListener;)J
+	*/
+	JNIEXPORT jlong JNICALL Java_com_thalmic_myo_Hub__1addDeviceListener
+	(JNIEnv *, jobject, jobject);
+
+	/*
+	* Class:     com_thalmic_myo_Hub
+	* Method:    _removeDeviceListener
+	* Signature: (J)V
+	*/
+	JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1removeDeviceListener
+	(JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif
