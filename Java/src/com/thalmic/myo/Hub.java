@@ -7,6 +7,22 @@ public final class Hub {
 		System.loadLibrary("myo_jni");
 	}
 	
+	private static final int POLICY_NONE = 0;
+	private static final int POLICY_STANDARD = 1;
+	public enum LockingPolicy {
+		lockingPolicyNone,
+		lockingPolicyStandard;
+		
+		protected int translate() {
+			if(this == lockingPolicyNone) {
+				return POLICY_NONE;
+			}
+			else {
+				return POLICY_STANDARD;
+			}
+		}
+	}
+	
 	private boolean deleted = false;
 	public boolean isReleased() {
 		return deleted;
@@ -62,22 +78,11 @@ public final class Hub {
 		deleted = true;
 	}
 	
-	enum LockingPolicy {
-		lockingPolicyNone,
-		lockingPolicyStandard
-	}
 	
-	private static final int POLICY_NONE = 0;
-	private static final int POLICY_STANDARD = 1;
 	private native void _setLockingPolicy(int policy);
 	public void setLockingPolicy(LockingPolicy policy) {
 		checkExcept();
-		if(policy == LockingPolicy.lockingPolicyNone) {
-			_setLockingPolicy(POLICY_NONE);
-		}
-		else {
-			_setLockingPolicy(POLICY_STANDARD);
-		}
+		_setLockingPolicy(policy.translate());
 	}
 	
 	private native void _run(int duration);
