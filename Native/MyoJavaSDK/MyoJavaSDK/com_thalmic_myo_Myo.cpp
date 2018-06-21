@@ -37,6 +37,10 @@ JNIEXPORT void JNICALL Java_com_thalmic_myo_Myo__1unlock(JNIEnv *env, jobject ob
 	}
 }
 
+JNIEXPORT void JNICALL Java_com_thalmic_myo_Myo__1lock(JNIEnv *env, jobject obj) {
+	getPointer(env, obj)->lock();
+}
+
 JNIEXPORT void JNICALL Java_com_thalmic_myo_Myo__1notifyAction(JNIEnv *env, jobject obj) {
 	getPointer(env, obj)->notifyUserAction();
 }

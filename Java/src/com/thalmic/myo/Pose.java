@@ -4,6 +4,10 @@ public enum Pose {
 	
 	unknown, rest, fist, fingersSpread, waveIn, waveOut, doubleTap;
 	
+	public Pose type() {
+		return this;
+	}
+	
 	@Override
 	public String toString() {
 		switch(this) {

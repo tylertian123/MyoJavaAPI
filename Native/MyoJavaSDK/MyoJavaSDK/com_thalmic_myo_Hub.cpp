@@ -22,9 +22,10 @@ public:
 
 	JavaVM *jvm;
 	
-	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass;
+	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass, poseClass;
 
-	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid, onArmSyncMid;
+	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid, onArmSyncMid, onArmUnsyncMid,
+		onLockMid, onUnlockMid, onPoseMid;
 
 	jmethodID myoConstructor, firmwareVersionConstructor;
 
@@ -32,6 +33,8 @@ public:
 	jfieldID armLeftFid, armRightFid, armUnknownFid;
 	jfieldID xDirElbowFid, xDirWristFid, xDirUnknownFid;
 	jfieldID warmupWarmFid, warmupColdFid, warmupUnknownFid;
+	jfieldID poseRestFid, poseUnknownFid, poseFistFid, poseFingersSpreadFid, poseWaveInFid, poseWaveOutFid,
+		poseDoubleTapFid;
 
 	JNIEnv* getJNIEnv() {
 		JNIEnv *env;
@@ -77,12 +80,17 @@ public:
 		onConnectMid = env->GetMethodID(listenerClass, "onConnect", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
 		onDisconnectMid = env->GetMethodID(listenerClass, "onDisconnect", "(Lcom/thalmic/myo/Myo;J)V");
 		onArmSyncMid = env->GetMethodID(listenerClass, "onArmSync", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Arm;Lcom/thalmic/myo/XDirection;FLcom/thalmic/myo/WarmupState;)V");
+		onArmUnsyncMid = env->GetMethodID(listenerClass, "onArmUnsync", "(Lcom/thalmic/myo/Myo;J)V");
+		onLockMid = env->GetMethodID(listenerClass, "onLock", "(Lcom/thalmic/myo/Myo;J)V");
+		onUnlockMid = env->GetMethodID(listenerClass, "onUnlock", "(Lcom/thalmic/myo/Myo;J)V");
+		onPoseMid = env->GetMethodID(listenerClass, "onPose", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Pose;)V");
 
 		myoClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Myo"));
 		firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
 		armClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Arm"));
 		xDirectionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/XDirection"));
 		warmupStateClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupState"));
+		poseClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Pose"));
 
 		myoConstructor = env->GetMethodID(myoClass, "<init>", "(J)V");
 		firmwareVersionConstructor = env->GetMethodID(firmwareVersionClass, "<init>", "()V");
@@ -98,24 +106,22 @@ public:
 		armLeftFid = env->GetStaticFieldID(env->FindClass("com/thalmic/myo/Arm"), "armLeft", "Lcom/thalmic/myo/Arm;");
 		armRightFid = env->GetStaticFieldID(armClass, "armRight", "Lcom/thalmic/myo/Arm;");
 		armUnknownFid = env->GetStaticFieldID(armClass, "armUnknown", "Lcom/thalmic/myo/Arm;");
-		if (!armLeftFid || !armRightFid || !armUnknownFid) {
-			THROW_JNI_EXCEPTION(env, "Failed to obtain Arm enum field IDs");
-			return;
-		}
 
 		xDirElbowFid = env->GetStaticFieldID(xDirectionClass, "xDirectionTowardsElbow", "Lcom/thalmic/myo/XDirection;");
 		xDirWristFid = env->GetStaticFieldID(xDirectionClass, "xDirectionTowardsWrist", "Lcom/thalmic/myo/XDirection;");
 		xDirUnknownFid = env->GetStaticFieldID(xDirectionClass, "xDirectionUnknown", "Lcom/thalmic/myo/XDirection;");
-		if (!xDirElbowFid || !xDirWristFid || !xDirUnknownFid) {
-			THROW_JNI_EXCEPTION(env, "Failed to obtain XDirection enum field IDs");
-		}
 
 		warmupColdFid = env->GetStaticFieldID(warmupStateClass, "warmupStateCold", "Lcom/thalmic/myo/WarmupState;");
 		warmupWarmFid = env->GetStaticFieldID(warmupStateClass, "warmupStateWarm", "Lcom/thalmic/myo/WarmupState;");
 		warmupUnknownFid = env->GetStaticFieldID(warmupStateClass, "warmupStateUnknown", "Lcom/thalmic/myo/WarmupState;");
-		if (!warmupColdFid || !warmupWarmFid || !warmupUnknownFid) {
-			THROW_JNI_EXCEPTION(env, "Failed to obtain WarmupState enum field IDs");
-		}
+
+		poseRestFid = env->GetStaticFieldID(poseClass, "rest", "Lcom/thalmic/myo/Pose;");
+		poseUnknownFid = env->GetStaticFieldID(poseClass, "unknown", "Lcom/thalmic/myo/Pose;");
+		poseFistFid = env->GetStaticFieldID(poseClass, "fist", "Lcom/thalmic/myo/Pose;");
+		poseFingersSpreadFid = env->GetStaticFieldID(poseClass, "fingersSpread", "Lcom/thalmic/myo/Pose;");
+		poseWaveInFid = env->GetStaticFieldID(poseClass, "waveIn", "Lcom/thalmic/myo/Pose;");
+		poseWaveOutFid = env->GetStaticFieldID(poseClass, "waveOut", "Lcom/thalmic/myo/Pose;");
+		poseDoubleTapFid = env->GetStaticFieldID(poseClass, "doubleTap", "Lcom/thalmic/myo/Pose;");
 	}
 
 	~ListenerWrapper() {
@@ -127,6 +133,7 @@ public:
 		env->DeleteGlobalRef(armClass);
 		env->DeleteGlobalRef(xDirectionClass);
 		env->DeleteGlobalRef(warmupStateClass);
+		env->DeleteGlobalRef(poseClass);
 		env->DeleteGlobalRef(jlistener);
 	}
 
@@ -239,6 +246,65 @@ public:
 		JNI_CHECK_EXCEPT(env);
 
 		env->CallVoidMethod(jlistener, onArmSyncMid, myoObject, time, armEnum, xDirectionEnum, fRotation, warmupStateEnum);
+	}
+
+	void onArmUnsync(Myo *myo, uint64_t timestamp) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		
+		env->CallVoidMethod(jlistener, onArmUnsyncMid, myoObject, time);
+	}
+	
+	void onLock(Myo *myo, uint64_t timestamp) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+
+		env->CallVoidMethod(jlistener, onLockMid, myoObject, time);
+	}
+
+	void onUnlock(Myo *myo, uint64_t timestamp) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+
+		env->CallVoidMethod(jlistener, onUnlockMid, myoObject, time);
+	}
+
+	void onPose(Myo *myo, uint64_t timestamp, Pose pose) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+
+		jobject poseEnum;
+		switch (pose.type()) {
+		case Pose::fist:
+			poseEnum = env->GetStaticObjectField(poseClass, poseFistFid);
+			break;
+		case Pose::fingersSpread:
+			poseEnum = env->GetStaticObjectField(poseClass, poseFingersSpreadFid);
+			break;
+		case Pose::waveIn:
+			poseEnum = env->GetStaticObjectField(poseClass, poseWaveInFid);
+			break;
+		case Pose::waveOut:
+			poseEnum = env->GetStaticObjectField(poseClass, poseWaveOutFid);
+			break;
+		case Pose::doubleTap:
+			poseEnum = env->GetStaticObjectField(poseClass, poseDoubleTapFid);
+			break;
+		case Pose::rest:
+			poseEnum = env->GetStaticObjectField(poseClass, poseRestFid);
+			break;
+		case Pose::unknown:
+			poseEnum = env->GetStaticObjectField(poseClass, poseUnknownFid);
+			break;
+		default:
+			poseEnum = env->GetStaticObjectField(poseClass, poseUnknownFid);
+		}
+
+		env->CallVoidMethod(jlistener, onPoseMid, myoObject, time, poseEnum);
 	}
 };
 
