@@ -1,5 +1,6 @@
 package com.thalmic.myo;
 
+import java.util.Collection;
 import java.util.HashMap;
 
 public final class Hub {
@@ -77,6 +78,12 @@ public final class Hub {
 	
 	private native void _release();
 	public void release() {
+		Collection<Long> addresses = deviceListenerAddresses.values();
+		for(long address : addresses) {
+			_removeDeviceListener(address);
+		}
+		deviceListenerAddresses.clear();
+		
 		_release();
 		deleted = true;
 	}

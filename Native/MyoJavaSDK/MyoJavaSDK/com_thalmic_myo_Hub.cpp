@@ -14,76 +14,150 @@ class ListenerWrapper : public DeviceListener {
 
 public:
 	jobject jlistener;
+
 	jclass listenerClass;
-	JNIEnv *env;
+
+	JavaVM *jvm;
+	
+	jclass myoClass, firmwareVersionClass;
 
 	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid;
 
-	jclass myoClass, firmwareVersionClass;
-
 	jmethodID myoConstructor, firmwareVersionConstructor;
 
-	jfieldID firmwareVersionMajorFid, firmwareVersionMinorFid, firmwareVersionPatchFid, firmwareVersionHardwareRevFid;
+	jfieldID fvMajorFid, fvMinorFid, fvPatchFid, fvHardwareRevFid;
 
-	ListenerWrapper(JNIEnv *env, jobject listener) : jlistener(listener), env(env) {
-		listenerClass = env->GetObjectClass(listener);
+	JNIEnv* getJNIEnv() {
+		JNIEnv *env;
+		int result = jvm->GetEnv((void **)&env, JNI_VERSION_1_8);
+		if (result == JNI_EDETACHED) {
+			result = jvm->AttachCurrentThread((void **)&env, nullptr);
+			if (result != JNI_OK) {
+				jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
+				env->ThrowNew(exceptionClass, (string("Unexpected error: Cannot attach current thread: ") + to_string(result)).c_str());
+				return nullptr;
+			}
+		}
+		else if (result != JNI_OK) {
+			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
+			env->ThrowNew(exceptionClass, (string("Unexpected error: Cannot get JNI environment: ") + to_string(result)).c_str());
+			return nullptr;
+		}
+		return env;
+	}
+	
+	static jclass makeGlobal(JNIEnv *env, jclass clazz) {
+		jclass ref = (jclass)env->NewGlobalRef(clazz);
+		if (!ref) {
+			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
+			env->ThrowNew(exceptionClass, "Failed to make global reference for class; JVM is out of memory");
+			return nullptr;
+		}
+		return ref;
+	}
+
+	ListenerWrapper(jobject listener, JNIEnv *env) {
+		jint result = env->GetJavaVM(&jvm);
+		if (result != JNI_OK) {
+			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
+			env->ThrowNew(exceptionClass, (string("Unexpected error: Cannot get JVM pointer: ") + to_string(result)).c_str());
+			return;
+		}
+		listenerClass = makeGlobal(env, env->GetObjectClass(listener));
+		jlistener = env->NewGlobalRef(listener);
+		if (!jlistener) {
+			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
+			env->ThrowNew(exceptionClass, "Failed to make global reference for object; JVM is out of memory");
+			return;
+		}
 
 		onPairMid = env->GetMethodID(listenerClass, "onPair", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
 		onUnpairMid = env->GetMethodID(listenerClass, "onUnpair", "(Lcom/thalmic/myo/Myo;J)V");
 		onConnectMid = env->GetMethodID(listenerClass, "onConnect", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
 		onDisconnectMid = env->GetMethodID(listenerClass, "onDisconnect", "(Lcom/thalmic/myo/Myo;J)V");
 
-		myoClass = env->FindClass("com/thalmic/myo/Myo");
-		firmwareVersionClass = env->FindClass("com/thalmic/myo/FirmwareVersion");
+		myoClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Myo"));
+		firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
 
 		myoConstructor = env->GetMethodID(myoClass, "<init>", "(J)V");
 		firmwareVersionConstructor = env->GetMethodID(firmwareVersionClass, "<init>", "()V");
 
-		firmwareVersionMajorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMajor", "I");
-		firmwareVersionMinorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMinor", "I");
-		firmwareVersionPatchFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionPatch", "I");
-		firmwareVersionHardwareRevFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionHardwareRev", "I");
+		fvMajorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMajor", "I");
+		fvMinorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMinor", "I");
+		fvPatchFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionPatch", "I");
+		fvHardwareRevFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionHardwareRev", "I");
 	}
 
-	jobject createMyo(Myo *myo) {
-		return env->NewObject(myoClass, myoConstructor, reinterpret_cast<jlong>(myo));
+	~ListenerWrapper() {
+		JNIEnv *env = getJNIEnv();
+
+		env->DeleteGlobalRef(listenerClass);
+		env->DeleteGlobalRef(myoClass);
+		env->DeleteGlobalRef(firmwareVersionClass);
+		env->DeleteGlobalRef(jlistener);
 	}
-	jobject createFirmwareVersion(FirmwareVersion firmwareVersion) {
+
+	jobject createMyo(JNIEnv *env, Myo *myo) {
+		jobject m = env->NewObject(myoClass, myoConstructor, reinterpret_cast<jlong>(myo));
+		if (env->ExceptionCheck() == JNI_TRUE) {
+			cerr << "Exception occurred" << endl;
+			env->ExceptionDescribe();
+			return nullptr;
+		}
+		return m;
+	}
+	jobject createFirmwareVersion(JNIEnv *env, FirmwareVersion firmwareVersion) {
 		jobject fv = env->NewObject(firmwareVersionClass, firmwareVersionConstructor);
 
-		env->SetIntField(fv, firmwareVersionMajorFid, firmwareVersion.firmwareVersionMajor);
-		env->SetIntField(fv, firmwareVersionMinorFid, firmwareVersion.firmwareVersionMinor);
-		env->SetIntField(fv, firmwareVersionPatchFid, firmwareVersion.firmwareVersionPatch);
-		env->SetIntField(fv, firmwareVersionHardwareRevFid, firmwareVersion.firmwareVersionHardwareRev);
+		if (env->ExceptionCheck() == JNI_TRUE) {
+			cerr << "Exception occurred" << endl;
+			env->ExceptionDescribe();
+			return nullptr;
+		}
+
+		env->SetIntField(fv, fvMajorFid, firmwareVersion.firmwareVersionMajor);
+		env->SetIntField(fv, fvMinorFid, firmwareVersion.firmwareVersionMinor);
+		env->SetIntField(fv, fvPatchFid, firmwareVersion.firmwareVersionPatch);
+		env->SetIntField(fv, fvHardwareRevFid, firmwareVersion.firmwareVersionHardwareRev);
+
+		if (env->ExceptionCheck() == JNI_TRUE) {
+			cerr << "Exception occurred" << endl;
+			env->ExceptionDescribe();
+			return nullptr;
+		}
 		return fv;
 	}
 
 	void onPair(Myo *myo, uint64_t timestamp, FirmwareVersion firmwareVersion) override {
-		jobject myoObject = createMyo(myo);
-		jlong time = timestamp;
-		jobject fv = createFirmwareVersion(firmwareVersion);
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong) timestamp;
+		jobject fv = createFirmwareVersion(env, firmwareVersion);
 
 		env->CallVoidMethod(jlistener, onPairMid, myoObject, time, fv);
 	}
 
 	void onUnpair(Myo *myo, uint64_t timestamp) override {
-		jobject myoObject = createMyo(myo);
-		jlong time = timestamp;
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong) timestamp;
 
 		env->CallVoidMethod(jlistener, onUnpairMid, myoObject, time);
 	}
 
 	void onConnect(Myo *myo, uint64_t timestamp, FirmwareVersion firmwareVersion) override {
-		jobject myoObject = createMyo(myo);
-		jlong time = timestamp;
-		jobject fv = createFirmwareVersion(firmwareVersion);
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong) timestamp;
+		jobject fv = createFirmwareVersion(env, firmwareVersion);
 
 		env->CallVoidMethod(jlistener, onConnectMid, myoObject, time, fv);
 	}
 
 	void onDisconnect(Myo *myo, uint64_t timestamp) override {
-		jobject myoObject = createMyo(myo);
-		jlong time = timestamp;
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong) timestamp;
 
 		env->CallVoidMethod(jlistener, onDisconnectMid, myoObject, time);
 	}
@@ -100,11 +174,11 @@ JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1initHub(JNIEnv *env, jobject o
 	}
 	catch (invalid_argument &e) {
 		jclass exceptionClass = env->FindClass("java/lang/IllegalArgumentException");
-		env->ThrowNew(exceptionClass, "Invalid application identifier");
+		env->ThrowNew(exceptionClass, e.what());
 	}
 	catch (runtime_error &e) {
 		jclass exceptionClass = env->FindClass("com/thalmic/myo/MyoException");
-		env->ThrowNew(exceptionClass, "Failed to connect to Hub");
+		env->ThrowNew(exceptionClass, e.what());
 	}
 	catch (...) {
 		jclass exceptionClass = env->FindClass("java/lang/Exception");
@@ -144,4 +218,18 @@ JNIEXPORT jboolean JNICALL Java_com_thalmic_myo_Hub__1waitForMyo(JNIEnv *env, jo
 	jfieldID pointerFid = env->GetFieldID(env->GetObjectClass(obj), "_myoAddress", "J");
 	env->SetLongField(obj, pointerFid, reinterpret_cast<jlong>(myo));
 	return true;
+}
+
+JNIEXPORT jlong JNICALL Java_com_thalmic_myo_Hub__1addDeviceListener(JNIEnv *env, jobject obj, jobject listener) {
+	ListenerWrapper *wrapper = new ListenerWrapper(listener, env);
+	getPointer(env, obj)->addListener(wrapper);
+	
+	return reinterpret_cast<jlong>(wrapper);
+}
+
+JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1removeDeviceListener(JNIEnv *env, jobject obj, jlong address) {
+	ListenerWrapper *wrapper = reinterpret_cast<ListenerWrapper*>(address);
+	getPointer(env, obj)->removeListener(wrapper);
+
+	delete wrapper;
 }

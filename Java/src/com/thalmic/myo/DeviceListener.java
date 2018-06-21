@@ -2,6 +2,10 @@ package com.thalmic.myo;
 
 public class DeviceListener {
 	
+	public void debug(int i) {
+		System.out.println(i);
+	}
+	
 	public void onPair(Myo myo, long timestamp, FirmwareVersion firmwareVersion) {
 	}
 	public void onUnpair(Myo myo, long timestamp) {
