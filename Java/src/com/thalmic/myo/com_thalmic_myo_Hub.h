@@ -51,6 +51,14 @@ JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1run
 JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1runOnce
   (JNIEnv *, jobject, jint);
 
+/*
+ * Class:     com_thalmic_myo_Hub
+ * Method:    _waitForMyo
+ * Signature: (I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_thalmic_myo_Hub__1waitForMyo
+  (JNIEnv *, jobject, jint);
+
 #ifdef __cplusplus
 }
 #endif

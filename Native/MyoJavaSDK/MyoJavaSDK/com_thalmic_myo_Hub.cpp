@@ -54,3 +54,15 @@ JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1run(JNIEnv *env, jobject obj, 
 JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1runOnce(JNIEnv *env, jobject obj, jint duration) {
 	getPointer(env, obj)->runOnce(duration);
 }
+
+JNIEXPORT jboolean JNICALL Java_com_thalmic_myo_Hub__1waitForMyo(JNIEnv *env, jobject obj, jint duration) {
+	Myo *myo = getPointer(env, obj)->waitForMyo(duration);
+	
+	if (!myo) {
+		return false;
+	}
+
+	jfieldID pointerFid = env->GetFieldID(env->GetObjectClass(obj), "_myoAddress", "J");
+	env->SetLongField(obj, pointerFid, reinterpret_cast<jlong>(myo));
+	return true;
+}

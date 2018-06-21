@@ -96,4 +96,14 @@ public final class Hub {
 		checkExcept();
 		_runOnce(durationMs);
 	}
+	
+	private native boolean _waitForMyo(int duration);
+	private long _myoAddress;
+	public Myo waitForMyo() {
+		return waitForMyo(0);
+	}
+	public Myo waitForMyo(int durationMs) {
+		checkExcept();
+		return _waitForMyo(durationMs) ? new Myo(_myoAddress) : null;
+	}
 }
