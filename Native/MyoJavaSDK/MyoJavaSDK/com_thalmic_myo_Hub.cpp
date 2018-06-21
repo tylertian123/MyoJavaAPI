@@ -32,3 +32,25 @@ JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1initHub(JNIEnv *env, jobject o
 		env->ThrowNew(exceptionClass, "Unexpected error");
 	}
 }
+
+JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1release(JNIEnv *env, jobject obj) {
+	Hub *hub = getPointer(env, obj);
+	delete hub;
+}
+
+JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1setLockingPolicy(JNIEnv *env, jobject obj, jint policy) {
+	if (policy == com_thalmic_myo_Hub_POLICY_NONE) {
+		getPointer(env, obj)->setLockingPolicy(Hub::lockingPolicyNone);
+	}
+	else {
+		getPointer(env, obj)->setLockingPolicy(Hub::lockingPolicyStandard);
+	}
+}
+
+JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1run(JNIEnv *env, jobject obj, jint duration) {
+	getPointer(env, obj)->run(duration);
+}
+
+JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1runOnce(JNIEnv *env, jobject obj, jint duration) {
+	getPointer(env, obj)->runOnce(duration);
+}

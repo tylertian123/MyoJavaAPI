@@ -7,6 +7,17 @@ public final class Hub {
 		System.loadLibrary("myo_jni");
 	}
 	
+	private boolean deleted = false;
+	public boolean isReleased() {
+		return deleted;
+	}
+	
+	private void checkExcept() {
+		if(deleted) {
+			throw new MyoException("This Hub has already been released");
+		}
+	}
+	
 	private long _nativePointer;
 	
 	private native void _initHub(String appID);
@@ -48,6 +59,7 @@ public final class Hub {
 	private native void _release();
 	public void release() {
 		_release();
+		deleted = true;
 	}
 	
 	enum LockingPolicy {
@@ -59,6 +71,7 @@ public final class Hub {
 	private static final int POLICY_STANDARD = 1;
 	private native void _setLockingPolicy(int policy);
 	public void setLockingPolicy(LockingPolicy policy) {
+		checkExcept();
 		if(policy == LockingPolicy.lockingPolicyNone) {
 			_setLockingPolicy(POLICY_NONE);
 		}
@@ -69,11 +82,13 @@ public final class Hub {
 	
 	private native void _run(int duration);
 	public void run(int durationMs) {
+		checkExcept();
 		_run(durationMs);
 	}
 	
 	private native void _runOnce(int duration);
 	public void runOnce(int durationMs) {
+		checkExcept();
 		_runOnce(durationMs);
 	}
 }
