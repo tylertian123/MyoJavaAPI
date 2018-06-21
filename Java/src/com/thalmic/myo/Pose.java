@@ -1,6 +1,7 @@
 package com.thalmic.myo;
 
 public enum Pose {
+	
 	unknown, rest, fist, fingersSpread, waveIn, waveOut, doubleTap;
 	
 	@Override
