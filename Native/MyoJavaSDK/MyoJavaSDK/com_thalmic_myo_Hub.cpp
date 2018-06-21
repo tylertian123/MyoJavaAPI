@@ -5,6 +5,8 @@
 using namespace std;
 using namespace myo;
 
+#define JNI_CHECK_EXCEPT(env) if(env->ExceptionCheck() == JNI_TRUE) { env->ExceptionDescribe(); }
+
 Hub* getPointer(JNIEnv *env, jobject obj) {
 	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_nativePointer", "J");
 	return reinterpret_cast<Hub*>(env->GetLongField(obj, fid));
@@ -19,13 +21,16 @@ public:
 
 	JavaVM *jvm;
 	
-	jclass myoClass, firmwareVersionClass;
+	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass;
 
-	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid;
+	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid, onArmSyncMid;
 
 	jmethodID myoConstructor, firmwareVersionConstructor;
 
 	jfieldID fvMajorFid, fvMinorFid, fvPatchFid, fvHardwareRevFid;
+	jfieldID armLeftFid, armRightFid, armUnknownFid;
+	jfieldID xDirElbowFId, xDirWristFid, xDirUnknownFid;
+	jfieldID warmupWarmFid, warmupColdFid, warmupUnknownFid;
 
 	JNIEnv* getJNIEnv() {
 		JNIEnv *env;
@@ -75,9 +80,13 @@ public:
 		onUnpairMid = env->GetMethodID(listenerClass, "onUnpair", "(Lcom/thalmic/myo/Myo;J)V");
 		onConnectMid = env->GetMethodID(listenerClass, "onConnect", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
 		onDisconnectMid = env->GetMethodID(listenerClass, "onDisconnect", "(Lcom/thalmic/myo/Myo;J)V");
+		onArmSyncMid = env->GetMethodID(listenerClass, "onArmSync", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Arm;Lcom/thalmic/myo/XDirection;FLcom/thalmic/myo/WarmupState;)V");
 
 		myoClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Myo"));
 		firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
+		armClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Arm"));
+		xDirectionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/XDirection"));
+		warmupStateClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupState"));
 
 		myoConstructor = env->GetMethodID(myoClass, "<init>", "(J)V");
 		firmwareVersionConstructor = env->GetMethodID(firmwareVersionClass, "<init>", "()V");
@@ -86,6 +95,15 @@ public:
 		fvMinorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMinor", "I");
 		fvPatchFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionPatch", "I");
 		fvHardwareRevFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionHardwareRev", "I");
+		armLeftFid = env->GetStaticFieldID(armClass, "armLeft", "Lcom.thalmic.myo.Arm;");
+		armRightFid = env->GetStaticFieldID(armClass, "armRight", "Lcom.thalmic.myo.Arm;");
+		armUnknownFid = env->GetStaticFieldID(armClass, "armUnknown", "Lcom.thalmic.myo.Arm;");
+		xDirElbowFId = env->GetStaticFieldID(armClass, "xDirectionTowardsElbow", "Lcom.thalmic.myo.XDirection;");
+		xDirWristFid = env->GetStaticFieldID(armClass, "xDirectionTowardsWrist", "Lcom.thalmic.myo.XDirection;");
+		xDirUnknownFid = env->GetStaticFieldID(armClass, "xDirectionUnknown", "Lcom.thalmic.myo.XDirection;");
+		warmupColdFid = env->GetStaticFieldID(armClass, "warmupStateCold", "Lcom.thalmic.myo.WarmupState;");
+		warmupWarmFid = env->GetStaticFieldID(armClass, "warmupStateWarm", "Lcom.thalmic.myo.WarmupState;");
+		warmupUnknownFid = env->GetStaticFieldID(armClass, "warmupStateUnknown", "Lcom.thalmic.myo.WarmupState;");
 	}
 
 	~ListenerWrapper() {
@@ -94,6 +112,9 @@ public:
 		env->DeleteGlobalRef(listenerClass);
 		env->DeleteGlobalRef(myoClass);
 		env->DeleteGlobalRef(firmwareVersionClass);
+		env->DeleteGlobalRef(armClass);
+		env->DeleteGlobalRef(xDirectionClass);
+		env->DeleteGlobalRef(warmupStateClass);
 		env->DeleteGlobalRef(jlistener);
 	}
 
@@ -160,6 +181,52 @@ public:
 		jlong time = (jlong) timestamp;
 
 		env->CallVoidMethod(jlistener, onDisconnectMid, myoObject, time);
+	}
+
+	void onArmSync(Myo *myo, uint64_t timestamp, Arm arm, XDirection xDirection, float rotation, WarmupState warmupState) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+
+		jobject armEnum;
+		if (arm == Arm::armLeft) {
+			armEnum = env->GetStaticObjectField(armClass, armLeftFid);
+		}
+		else if (arm == Arm::armRight) {
+			armEnum = env->GetStaticObjectField(armClass, armRightFid);
+		}
+		else {
+			armEnum = env->GetStaticObjectField(armClass, armUnknownFid);
+		}
+		JNI_CHECK_EXCEPT(env);
+
+		jobject xDirectionEnum;
+		if (xDirection == XDirection::xDirectionTowardElbow) {
+			xDirectionEnum = env->GetStaticObjectField(xDirectionClass, xDirElbowFId);
+		}
+		else if (xDirection == XDirection::xDirectionTowardWrist) {
+			xDirectionEnum = env->GetStaticObjectField(xDirectionClass, xDirWristFid);
+		}
+		else {
+			xDirectionEnum = env->GetStaticObjectField(xDirectionClass, xDirUnknownFid);
+		}
+		JNI_CHECK_EXCEPT(env);
+
+		jfloat fRotation = rotation;
+
+		jobject warmupStateEnum;
+		if (warmupState == WarmupState::warmupStateCold) {
+			warmupStateEnum = env->GetStaticObjectField(warmupStateClass, warmupColdFid);
+		}
+		else if (warmupState == WarmupState::warmupStateWarm) {
+			warmupStateEnum = env->GetStaticObjectField(warmupStateClass, warmupWarmFid);
+		}
+		else {
+			warmupStateEnum = env->GetStaticObjectField(warmupStateClass, warmupUnknownFid);
+		}
+		JNI_CHECK_EXCEPT(env);
+
+		env->CallVoidMethod(jlistener, onArmSyncMid, myoObject, time, armEnum, xDirectionEnum, fRotation, warmupStateEnum);
 	}
 };
 
