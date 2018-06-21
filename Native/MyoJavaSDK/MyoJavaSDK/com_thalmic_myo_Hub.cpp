@@ -6,6 +6,7 @@ using namespace std;
 using namespace myo;
 
 #define JNI_CHECK_EXCEPT(env) if(env->ExceptionCheck() == JNI_TRUE) { env->ExceptionDescribe(); }
+#define THROW_JNI_EXCEPTION(env, message) env->ThrowNew(env->FindClass("com/thalmic/myo/JNIException"), message)
 
 Hub* getPointer(JNIEnv *env, jobject obj) {
 	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_nativePointer", "J");
@@ -29,7 +30,7 @@ public:
 
 	jfieldID fvMajorFid, fvMinorFid, fvPatchFid, fvHardwareRevFid;
 	jfieldID armLeftFid, armRightFid, armUnknownFid;
-	jfieldID xDirElbowFId, xDirWristFid, xDirUnknownFid;
+	jfieldID xDirElbowFid, xDirWristFid, xDirUnknownFid;
 	jfieldID warmupWarmFid, warmupColdFid, warmupUnknownFid;
 
 	JNIEnv* getJNIEnv() {
@@ -38,14 +39,12 @@ public:
 		if (result == JNI_EDETACHED) {
 			result = jvm->AttachCurrentThread((void **)&env, nullptr);
 			if (result != JNI_OK) {
-				jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
-				env->ThrowNew(exceptionClass, (string("Unexpected error: Cannot attach current thread: ") + to_string(result)).c_str());
+				THROW_JNI_EXCEPTION(env, (string("Unexpected error: Cannot attach current thread: ") + to_string(result)).c_str());
 				return nullptr;
 			}
 		}
 		else if (result != JNI_OK) {
-			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
-			env->ThrowNew(exceptionClass, (string("Unexpected error: Cannot get JNI environment: ") + to_string(result)).c_str());
+			THROW_JNI_EXCEPTION(env, (string("Unexpected error: Cannot get JNI environment: ") + to_string(result)).c_str());
 			return nullptr;
 		}
 		return env;
@@ -54,8 +53,7 @@ public:
 	static jclass makeGlobal(JNIEnv *env, jclass clazz) {
 		jclass ref = (jclass)env->NewGlobalRef(clazz);
 		if (!ref) {
-			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
-			env->ThrowNew(exceptionClass, "Failed to make global reference for class; JVM is out of memory");
+			THROW_JNI_EXCEPTION(env, "Failed to make global reference for class; JVM is out of memory");
 			return nullptr;
 		}
 		return ref;
@@ -64,15 +62,13 @@ public:
 	ListenerWrapper(jobject listener, JNIEnv *env) {
 		jint result = env->GetJavaVM(&jvm);
 		if (result != JNI_OK) {
-			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
-			env->ThrowNew(exceptionClass, (string("Unexpected error: Cannot get JVM pointer: ") + to_string(result)).c_str());
+			THROW_JNI_EXCEPTION(env, (string("Unexpected error: Cannot get JVM pointer: ") + to_string(result)).c_str());
 			return;
 		}
 		listenerClass = makeGlobal(env, env->GetObjectClass(listener));
 		jlistener = env->NewGlobalRef(listener);
 		if (!jlistener) {
-			jclass exceptionClass = env->FindClass("com/thalmic/myo/JNIException");
-			env->ThrowNew(exceptionClass, "Failed to make global reference for object; JVM is out of memory");
+			THROW_JNI_EXCEPTION(env, "Failed to make global reference for object; JVM is out of memory");
 			return;
 		}
 
@@ -95,15 +91,31 @@ public:
 		fvMinorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMinor", "I");
 		fvPatchFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionPatch", "I");
 		fvHardwareRevFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionHardwareRev", "I");
-		armLeftFid = env->GetStaticFieldID(armClass, "armLeft", "Lcom.thalmic.myo.Arm;");
-		armRightFid = env->GetStaticFieldID(armClass, "armRight", "Lcom.thalmic.myo.Arm;");
-		armUnknownFid = env->GetStaticFieldID(armClass, "armUnknown", "Lcom.thalmic.myo.Arm;");
-		xDirElbowFId = env->GetStaticFieldID(armClass, "xDirectionTowardsElbow", "Lcom.thalmic.myo.XDirection;");
-		xDirWristFid = env->GetStaticFieldID(armClass, "xDirectionTowardsWrist", "Lcom.thalmic.myo.XDirection;");
-		xDirUnknownFid = env->GetStaticFieldID(armClass, "xDirectionUnknown", "Lcom.thalmic.myo.XDirection;");
-		warmupColdFid = env->GetStaticFieldID(armClass, "warmupStateCold", "Lcom.thalmic.myo.WarmupState;");
-		warmupWarmFid = env->GetStaticFieldID(armClass, "warmupStateWarm", "Lcom.thalmic.myo.WarmupState;");
-		warmupUnknownFid = env->GetStaticFieldID(armClass, "warmupStateUnknown", "Lcom.thalmic.myo.WarmupState;");
+		if (!fvMajorFid || !fvMajorFid || !fvPatchFid || !fvHardwareRevFid) {
+			THROW_JNI_EXCEPTION(env, "Failed to obtain FirmwareVersion class field IDs");
+		}
+
+		armLeftFid = env->GetStaticFieldID(env->FindClass("com/thalmic/myo/Arm"), "armLeft", "Lcom/thalmic/myo/Arm;");
+		armRightFid = env->GetStaticFieldID(armClass, "armRight", "Lcom/thalmic/myo/Arm;");
+		armUnknownFid = env->GetStaticFieldID(armClass, "armUnknown", "Lcom/thalmic/myo/Arm;");
+		if (!armLeftFid || !armRightFid || !armUnknownFid) {
+			THROW_JNI_EXCEPTION(env, "Failed to obtain Arm enum field IDs");
+			return;
+		}
+
+		xDirElbowFid = env->GetStaticFieldID(xDirectionClass, "xDirectionTowardsElbow", "Lcom/thalmic/myo/XDirection;");
+		xDirWristFid = env->GetStaticFieldID(xDirectionClass, "xDirectionTowardsWrist", "Lcom/thalmic/myo/XDirection;");
+		xDirUnknownFid = env->GetStaticFieldID(xDirectionClass, "xDirectionUnknown", "Lcom/thalmic/myo/XDirection;");
+		if (!xDirElbowFid || !xDirWristFid || !xDirUnknownFid) {
+			THROW_JNI_EXCEPTION(env, "Failed to obtain XDirection enum field IDs");
+		}
+
+		warmupColdFid = env->GetStaticFieldID(warmupStateClass, "warmupStateCold", "Lcom/thalmic/myo/WarmupState;");
+		warmupWarmFid = env->GetStaticFieldID(warmupStateClass, "warmupStateWarm", "Lcom/thalmic/myo/WarmupState;");
+		warmupUnknownFid = env->GetStaticFieldID(warmupStateClass, "warmupStateUnknown", "Lcom/thalmic/myo/WarmupState;");
+		if (!warmupColdFid || !warmupWarmFid || !warmupUnknownFid) {
+			THROW_JNI_EXCEPTION(env, "Failed to obtain WarmupState enum field IDs");
+		}
 	}
 
 	~ListenerWrapper() {
@@ -202,7 +214,7 @@ public:
 
 		jobject xDirectionEnum;
 		if (xDirection == XDirection::xDirectionTowardElbow) {
-			xDirectionEnum = env->GetStaticObjectField(xDirectionClass, xDirElbowFId);
+			xDirectionEnum = env->GetStaticObjectField(xDirectionClass, xDirElbowFid);
 		}
 		else if (xDirection == XDirection::xDirectionTowardWrist) {
 			xDirectionEnum = env->GetStaticObjectField(xDirectionClass, xDirWristFid);
