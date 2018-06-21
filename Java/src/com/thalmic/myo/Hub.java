@@ -1,6 +1,7 @@
 package com.thalmic.myo;
 
-//TODO: Implement waitForMyo and addDeviceListener and removeDeviceListener
+import java.util.HashMap;
+
 public final class Hub {
 	
 	static {
@@ -33,6 +34,8 @@ public final class Hub {
 			throw new MyoException("This Hub has already been released");
 		}
 	}
+	
+	private HashMap<DeviceListener, Long> deviceListenerAddresses = new HashMap<DeviceListener, Long>();
 	
 	private long _nativePointer;
 	
@@ -105,5 +108,22 @@ public final class Hub {
 	public Myo waitForMyo(int durationMs) {
 		checkExcept();
 		return _waitForMyo(durationMs) ? new Myo(_myoAddress) : null;
+	}
+	
+	private native long _addDeviceListener(DeviceListener listener);
+	public void addDeviceListener(DeviceListener listener) {
+		checkExcept();
+		long address = _addDeviceListener(listener);
+		deviceListenerAddresses.put(listener, address);
+	}
+	
+	private native void _removeDeviceListener(long address);
+	public void removeDeviceListener(DeviceListener listener) {
+		checkExcept();
+		if(!deviceListenerAddresses.containsKey(listener)) {
+			return;
+		}
+		_removeDeviceListener(deviceListenerAddresses.get(listener));
+		deviceListenerAddresses.remove(listener);
 	}
 }
