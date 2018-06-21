@@ -1,0 +1,2 @@
+#define JNICALL
+#define JNIEXPORT

@@ -1,0 +1,14 @@
+# Visual studio stuff
+.vs/
+*.VC.opendb
+*.VC.db
+# Build outputs
+bin/
+build/
+dist/
+Debug/
+Release/
+ipch/
+*.class
+# Logs
+*.log
