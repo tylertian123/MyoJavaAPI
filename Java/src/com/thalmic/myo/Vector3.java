@@ -2,12 +2,12 @@ package com.thalmic.myo;
 
 public class Vector3 {
 	
-	private float x, y, z;
+	private double x, y, z;
 	
 	public Vector3() {
 		x = y = z = 0;
 	}
-	public Vector3(float x, float y, float z) {
+	public Vector3(double x, double y, double z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -18,24 +18,24 @@ public class Vector3 {
 		this.z = other.z;
 	}
 	
-	public float x() {
+	public double x() {
 		return x;
 	}
-	public float y() {
+	public double y() {
 		return y;
 	}
-	public float z() {
+	public double z() {
 		return z;
 	}
 	
-	public float magnitude() {
-		return (float) Math.sqrt(x * x + y * y + z * z);
+	public double magnitude() {
+		return (double) Math.sqrt(x * x + y * y + z * z);
 	}
 	public Vector3 normalized() {
-		float mag = magnitude();
+		double mag = magnitude();
 		return new Vector3(this.x / mag, this.y / mag, this.z / mag);
 	}
-	public float dot(Vector3 rhs) {
+	public double dot(Vector3 rhs) {
 		return x * rhs.x + y * rhs.y + z * rhs.z;
 	}
 	public Vector3 cross(Vector3 rhs) {
@@ -45,7 +45,7 @@ public class Vector3 {
 	            x * rhs.y - y * rhs.x
 		);
 	}
-	public float angleTo(Vector3 rhs) {
-		return (float) Math.acos(dot(rhs) / (rhs.magnitude() * magnitude()));
+	public double angleTo(Vector3 rhs) {
+		return Math.acos(dot(rhs) / (rhs.magnitude() * magnitude()));
 	}
 }
