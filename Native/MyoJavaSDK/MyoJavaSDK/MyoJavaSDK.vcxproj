@@ -132,9 +132,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="com_thalmic_myo_Hub.h" />
+    <ClInclude Include="com_thalmic_myo_Myo.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="com_thalmic_myo_Hub.cpp" />
+    <ClCompile Include="com_thalmic_myo_Myo.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

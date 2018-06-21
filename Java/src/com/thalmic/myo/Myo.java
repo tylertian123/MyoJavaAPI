@@ -80,7 +80,7 @@ public class Myo {
 	}
 	
 	private native void _notifyAction();
-	public void _notifyUserAction() {
+	public void notifyUserAction() {
 		_notifyAction();
 	}
 	
