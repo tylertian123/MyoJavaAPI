@@ -23,13 +23,13 @@ public:
 	JavaVM *jvm;
 	
 	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass, poseClass,
-		quaternionClass, vector3Class;
+		quaternionClass, vector3Class, warmupResultClass;
 
 	jmethodID myoConstructor, firmwareVersionConstructor, quaternionConstructor, vector3Constructor;
 
 	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid, onArmSyncMid, onArmUnsyncMid,
 		onLockMid, onUnlockMid, onPoseMid, onOrientationDataMid, onAccelerometerDataMid, onGyroscopeDataMid,
-		onRssiMid, onBatteryLevelReceivedMid, onEmgDataMid;
+		onRssiMid, onBatteryLevelReceivedMid, onEmgDataMid, onWarmupCompletedMid;
 
 	jfieldID fvMajorFid, fvMinorFid, fvPatchFid, fvHardwareRevFid;
 	jfieldID armLeftFid, armRightFid, armUnknownFid;
@@ -37,6 +37,7 @@ public:
 	jfieldID warmupWarmFid, warmupColdFid, warmupUnknownFid;
 	jfieldID poseRestFid, poseUnknownFid, poseFistFid, poseFingersSpreadFid, poseWaveInFid, poseWaveOutFid,
 		poseDoubleTapFid;
+	jfieldID warmupResultSuccessFid, warmupResultFailedFid, warmupResultUnknownFid;
 
 	JNIEnv* getJNIEnv() {
 		JNIEnv *env;
@@ -92,6 +93,7 @@ public:
 		onRssiMid = env->GetMethodID(listenerClass, "onRssi", "(Lcom/thalmic/myo/Myo;JB)V");
 		onBatteryLevelReceivedMid = env->GetMethodID(listenerClass, "onBatteryLevelReceived", "(Lcom/thalmic/myo/Myo;JB)V");
 		onEmgDataMid = env->GetMethodID(listenerClass, "onEmgData", "(Lcom/thalmic/myo/Myo;J[B)V");
+		onWarmupCompletedMid = env->GetMethodID(listenerClass, "onWarmupCompleted", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/WarmupResult;)V");
 
 		myoClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Myo"));
 		firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
@@ -101,6 +103,7 @@ public:
 		poseClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Pose"));
 		quaternionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Quaternion"));
 		vector3Class = makeGlobal(env, env->FindClass("com/thalmic/myo/Vector3"));
+		warmupResultClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupResult"));
 
 		myoConstructor = env->GetMethodID(myoClass, "<init>", "(J)V");
 		firmwareVersionConstructor = env->GetMethodID(firmwareVersionClass, "<init>", "()V");
@@ -111,9 +114,6 @@ public:
 		fvMinorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMinor", "I");
 		fvPatchFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionPatch", "I");
 		fvHardwareRevFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionHardwareRev", "I");
-		if (!fvMajorFid || !fvMajorFid || !fvPatchFid || !fvHardwareRevFid) {
-			THROW_JNI_EXCEPTION(env, "Failed to obtain FirmwareVersion class field IDs");
-		}
 
 		armLeftFid = env->GetStaticFieldID(env->FindClass("com/thalmic/myo/Arm"), "armLeft", "Lcom/thalmic/myo/Arm;");
 		armRightFid = env->GetStaticFieldID(armClass, "armRight", "Lcom/thalmic/myo/Arm;");
@@ -134,6 +134,10 @@ public:
 		poseWaveInFid = env->GetStaticFieldID(poseClass, "waveIn", "Lcom/thalmic/myo/Pose;");
 		poseWaveOutFid = env->GetStaticFieldID(poseClass, "waveOut", "Lcom/thalmic/myo/Pose;");
 		poseDoubleTapFid = env->GetStaticFieldID(poseClass, "doubleTap", "Lcom/thalmic/myo/Pose;");
+
+		warmupResultSuccessFid = env->GetStaticFieldID(warmupResultClass, "warmupResultSuccess", "Lcom/thalmic/myo/WarmupResult;");
+		warmupResultFailedFid = env->GetStaticFieldID(warmupResultClass, "warmupResultFailedTimeout", "Lcom/thalmic/myo/WarmupResult");
+		warmupResultUnknownFid = env->GetStaticFieldID(warmupResultClass, "warmupResultUnknown", "Lcom/thalmic/myo/WarmupResult");
 	}
 
 	~ListenerWrapper() {
@@ -148,6 +152,7 @@ public:
 		env->DeleteGlobalRef(poseClass);
 		env->DeleteGlobalRef(quaternionClass);
 		env->DeleteGlobalRef(vector3Class);
+		env->DeleteGlobalRef(warmupResultClass);
 		env->DeleteGlobalRef(jlistener);
 	}
 
@@ -397,6 +402,25 @@ public:
 		env->SetByteArrayRegion(emgArray, 0, 8, emg);
 
 		env->CallVoidMethod(jlistener, onEmgDataMid, myoObject, time, emgArray);
+	}
+
+	void onWarmupCompleted(Myo *myo, uint64_t timestamp, WarmupResult warmupResult) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+
+		jobject warmupResultEnum;
+		if (warmupResult == WarmupResult::warmupResultSuccess) {
+			warmupResultEnum = env->GetStaticObjectField(listenerClass, warmupResultSuccessFid);
+		}
+		else if (warmupResult = WarmupResult::warmupResultFailedTimeout) {
+			warmupResultEnum = env->GetStaticObjectField(listenerClass, warmupResultFailedFid);
+		}
+		else {
+			warmupResultEnum = env->GetStaticObjectField(listenerClass, warmupResultUnknownFid);
+		}
+
+		env->CallVoidMethod(jlistener, onWarmupCompletedMid, myoObject, time, warmupResultEnum);
 	}
 };
 
