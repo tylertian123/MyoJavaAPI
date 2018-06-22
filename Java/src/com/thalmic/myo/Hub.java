@@ -119,7 +119,7 @@ public final class Hub {
 	
 	private static boolean isImplemented(DeviceListener listener, String name, Class<?>... paramTypes) {
 		try {
-			return listener.getClass().getMethod(name, paramTypes).getDeclaringClass().equals(DeviceListener.class);
+			return !listener.getClass().getMethod(name, paramTypes).getDeclaringClass().equals(DeviceListener.class);
 		} 
 		//Should never happen
 		catch (NoSuchMethodException e) {
