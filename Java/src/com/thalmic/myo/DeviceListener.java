@@ -30,11 +30,11 @@ public class DeviceListener {
 	}
 	public void onGyroscopeData(Myo myo, long timestamp, Vector3 gyro) {
 	}
-	public void onRssi(Myo myo, long timestamp, int rssi) {
+	public void onRssi(Myo myo, long timestamp, byte rssi) {
 	}
-	public void onBatteryLevelReceived(Myo myo, long timestamp, int level) {
+	public void onBatteryLevelReceived(Myo myo, long timestamp, short level) {
 	}
-	public void onEmgData(Myo myo, long timestamp, int[] emg) {
+	public void onEmgData(Myo myo, long timestamp, byte[] emg) {
 	}
 	public void onWarmupCompleted(Myo myo, long timestamp, WarmupResult warmupResult) {
 	}
