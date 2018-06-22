@@ -22,12 +22,14 @@ public:
 
 	JavaVM *jvm;
 	
-	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass, poseClass;
+	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass, poseClass,
+		quaternionClass, vector3Class;
+
+	jmethodID myoConstructor, firmwareVersionConstructor, quaternionConstructor, vector3Constructor;
 
 	jmethodID onPairMid, onUnpairMid, onConnectMid, onDisconnectMid, onArmSyncMid, onArmUnsyncMid,
-		onLockMid, onUnlockMid, onPoseMid;
-
-	jmethodID myoConstructor, firmwareVersionConstructor;
+		onLockMid, onUnlockMid, onPoseMid, onOrientationDataMid, onAccelerometerDataMid, onGyroscopeDataMid,
+		onRssiMid, onBatteryLevelReceivedMid, onEmgDataMid;
 
 	jfieldID fvMajorFid, fvMinorFid, fvPatchFid, fvHardwareRevFid;
 	jfieldID armLeftFid, armRightFid, armUnknownFid;
@@ -84,6 +86,12 @@ public:
 		onLockMid = env->GetMethodID(listenerClass, "onLock", "(Lcom/thalmic/myo/Myo;J)V");
 		onUnlockMid = env->GetMethodID(listenerClass, "onUnlock", "(Lcom/thalmic/myo/Myo;J)V");
 		onPoseMid = env->GetMethodID(listenerClass, "onPose", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Pose;)V");
+		onOrientationDataMid = env->GetMethodID(listenerClass, "onOrientationData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Quaternion;)V");
+		onAccelerometerDataMid = env->GetMethodID(listenerClass, "onAccelerometerData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Vector3;)V");
+		onGyroscopeDataMid = env->GetMethodID(listenerClass, "onGyroscopeData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Vector3;)V");
+		onRssiMid = env->GetMethodID(listenerClass, "onRssi", "(Lcom/thalmic/myo/Myo;JB)V");
+		onBatteryLevelReceivedMid = env->GetMethodID(listenerClass, "onBatteryLevelReceived", "(Lcom/thalmic/myo/Myo;JB)V");
+		onEmgDataMid = env->GetMethodID(listenerClass, "onEmgData", "(Lcom/thalmic/myo/Myo;J[B)V");
 
 		myoClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Myo"));
 		firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
@@ -91,9 +99,13 @@ public:
 		xDirectionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/XDirection"));
 		warmupStateClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupState"));
 		poseClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Pose"));
+		quaternionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Quaternion"));
+		vector3Class = makeGlobal(env, env->FindClass("com/thalmic/myo/Vector3"));
 
 		myoConstructor = env->GetMethodID(myoClass, "<init>", "(J)V");
 		firmwareVersionConstructor = env->GetMethodID(firmwareVersionClass, "<init>", "()V");
+		quaternionConstructor = env->GetMethodID(quaternionClass, "<init>", "(DDDD)V");
+		vector3Constructor = env->GetMethodID(vector3Class, "<init>", "(DDD)V");
 
 		fvMajorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMajor", "I");
 		fvMinorFid = env->GetFieldID(firmwareVersionClass, "firmwareVersionMinor", "I");
@@ -134,13 +146,15 @@ public:
 		env->DeleteGlobalRef(xDirectionClass);
 		env->DeleteGlobalRef(warmupStateClass);
 		env->DeleteGlobalRef(poseClass);
+		env->DeleteGlobalRef(quaternionClass);
+		env->DeleteGlobalRef(vector3Class);
 		env->DeleteGlobalRef(jlistener);
 	}
 
 	jobject createMyo(JNIEnv *env, Myo *myo) {
 		jobject m = env->NewObject(myoClass, myoConstructor, reinterpret_cast<jlong>(myo));
 		if (env->ExceptionCheck() == JNI_TRUE) {
-			cerr << "Exception occurred" << endl;
+			cerr << "Exception when creating Myo object" << endl;
 			env->ExceptionDescribe();
 			return nullptr;
 		}
@@ -150,7 +164,7 @@ public:
 		jobject fv = env->NewObject(firmwareVersionClass, firmwareVersionConstructor);
 
 		if (env->ExceptionCheck() == JNI_TRUE) {
-			cerr << "Exception occurred" << endl;
+			cerr << "Exception when creating FirmwareVersion object" << endl;
 			env->ExceptionDescribe();
 			return nullptr;
 		}
@@ -161,11 +175,33 @@ public:
 		env->SetIntField(fv, fvHardwareRevFid, firmwareVersion.firmwareVersionHardwareRev);
 
 		if (env->ExceptionCheck() == JNI_TRUE) {
-			cerr << "Exception occurred" << endl;
+			cerr << "Exception when setting fields for FirmwareVersion object" << endl;
 			env->ExceptionDescribe();
 			return nullptr;
 		}
 		return fv;
+	}
+	jobject createQuaternion(JNIEnv *env, const Quaternion<float> *q) {
+		jobject quatObject = env->NewObject(quaternionClass, quaternionConstructor, 
+			static_cast<jdouble>(q->x()), static_cast<jdouble>(q->y()), static_cast<jdouble>(q->z()), static_cast<jdouble>(q->w()));
+		if (env->ExceptionCheck == JNI_TRUE) {
+			cerr << "Exception when creating Quaternion object" << endl;
+			env->ExceptionDescribe();
+			return nullptr;
+		}
+
+		return quatObject;
+	}
+	jobject createVector3(JNIEnv *env, const Vector3<float> *v) {
+		jobject vecObject = env->NewObject(vector3Class, vector3Constructor,
+			static_cast<jdouble>(v->x()), static_cast<jdouble>(v->y()), static_cast<jdouble>(v->z()));
+		if (env->ExceptionCheck == JNI_TRUE) {
+			cerr << "Exception when creating Vector3 object" << endl;
+			env->ExceptionDescribe();
+			return nullptr;
+		}
+
+		return vecObject;
 	}
 
 	void onPair(Myo *myo, uint64_t timestamp, FirmwareVersion firmwareVersion) override {
@@ -231,7 +267,7 @@ public:
 		}
 		JNI_CHECK_EXCEPT(env);
 
-		jfloat fRotation = rotation;
+		jfloat jRotation = rotation;
 
 		jobject warmupStateEnum;
 		if (warmupState == WarmupState::warmupStateCold) {
@@ -245,7 +281,7 @@ public:
 		}
 		JNI_CHECK_EXCEPT(env);
 
-		env->CallVoidMethod(jlistener, onArmSyncMid, myoObject, time, armEnum, xDirectionEnum, fRotation, warmupStateEnum);
+		env->CallVoidMethod(jlistener, onArmSyncMid, myoObject, time, armEnum, xDirectionEnum, jRotation, warmupStateEnum);
 	}
 
 	void onArmUnsync(Myo *myo, uint64_t timestamp) override {
@@ -305,6 +341,62 @@ public:
 		}
 
 		env->CallVoidMethod(jlistener, onPoseMid, myoObject, time, poseEnum);
+	}
+
+	void onOrientationData(Myo *myo, uint64_t timestamp, const Quaternion<float> &orientation) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		jobject quatObject = createQuaternion(env, &orientation);
+
+		env->CallVoidMethod(jlistener, onOrientationDataMid, myoObject, time, quatObject);
+	}
+
+	void onAccelerometerData(Myo *myo, uint64_t timestamp, const Vector3<float> &accel) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		jobject vecObject = createVector3(env, &accel);
+
+		env->CallVoidMethod(jlistener, onAccelerometerDataMid, myoObject, time, vecObject);
+	}
+
+	void onGyroscopeData(Myo *myo, uint64_t timestamp, const Vector3<float> &gyro) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		jobject vecObject = createVector3(env, &gyro);
+
+		env->CallVoidMethod(jlistener, onGyroscopeDataMid, myoObject, time, vecObject);
+	}
+
+	void onRssi(Myo *myo, uint64_t timestamp, int8_t rssi) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		jbyte jRssi = static_cast<jbyte>(rssi);
+
+		env->CallVoidMethod(jlistener, onRssiMid, myoObject, time, jRssi);
+	}
+
+	void onBatteryLevelReceived(Myo *myo, uint64_t timestamp, uint8_t batteryLevel) override {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		jbyte jBattLevel = static_cast<jbyte>(batteryLevel);
+
+		env->CallVoidMethod(jlistener, onBatteryLevelReceivedMid, myoObject, time, jBattLevel);
+	}
+
+	void onEmgData(Myo *myo, uint64_t timestamp, const int8_t *emg) {
+		JNIEnv *env = getJNIEnv();
+		jobject myoObject = createMyo(env, myo);
+		jlong time = (jlong)timestamp;
+		
+		jbyteArray emgArray = env->NewByteArray(8);
+		env->SetByteArrayRegion(emgArray, 0, 8, emg);
+
+		env->CallVoidMethod(jlistener, onEmgDataMid, myoObject, time, emgArray);
 	}
 };
 
