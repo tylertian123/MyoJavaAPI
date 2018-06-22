@@ -147,7 +147,7 @@ public final class Hub {
 			boolean onBatteryLevelReceivedImplemented,
 			boolean onEmgDataImplemented, 
 			boolean onWarmupCompletedImplemented);
-	public void addDeviceListener(DeviceListener listener) {
+	public void addListener(DeviceListener listener) {
 		checkExcept();
 		long address = _addDeviceListener(listener,
 				isImplemented(listener, "onPair", Myo.class, long.class, FirmwareVersion.class),
@@ -170,7 +170,7 @@ public final class Hub {
 	}
 	
 	private native void _removeDeviceListener(long address);
-	public void removeDeviceListener(DeviceListener listener) {
+	public void removeListener(DeviceListener listener) {
 		checkExcept();
 		if(!deviceListenerAddresses.containsKey(listener)) {
 			return;
