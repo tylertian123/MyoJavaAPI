@@ -189,7 +189,7 @@ public:
 	jobject createQuaternion(JNIEnv *env, const Quaternion<float> *q) {
 		jobject quatObject = env->NewObject(quaternionClass, quaternionConstructor, 
 			static_cast<jdouble>(q->x()), static_cast<jdouble>(q->y()), static_cast<jdouble>(q->z()), static_cast<jdouble>(q->w()));
-		if (env->ExceptionCheck == JNI_TRUE) {
+		if (env->ExceptionCheck() == JNI_TRUE) {
 			cerr << "Exception when creating Quaternion object" << endl;
 			env->ExceptionDescribe();
 			return nullptr;
@@ -200,7 +200,7 @@ public:
 	jobject createVector3(JNIEnv *env, const Vector3<float> *v) {
 		jobject vecObject = env->NewObject(vector3Class, vector3Constructor,
 			static_cast<jdouble>(v->x()), static_cast<jdouble>(v->y()), static_cast<jdouble>(v->z()));
-		if (env->ExceptionCheck == JNI_TRUE) {
+		if (env->ExceptionCheck() == JNI_TRUE) {
 			cerr << "Exception when creating Vector3 object" << endl;
 			env->ExceptionDescribe();
 			return nullptr;
