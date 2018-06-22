@@ -47,12 +47,14 @@ public class Quaternion implements Cloneable {
 	 * <br>
 	 * This method is provided as a Java counterpart of the overloaded C++ "=" operator.
 	 * @param other The quaternion whose components will be copied.
+	 * @return This quaternion, after updating the components.
 	 */
-	public void equal(Quaternion other) {
+	public Quaternion equal(Quaternion other) {
 		this.w = other.w;
 		this.x = other.x;
 		this.y = other.y;
 		this.z = other.z;
+		return this;
 	}
 
 	/**
