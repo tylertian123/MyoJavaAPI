@@ -12,6 +12,9 @@ Release/
 ipch/
 *.class
 
+# Include top level bin folder
+!/bin/
+
 # Logs
 *.log
 
