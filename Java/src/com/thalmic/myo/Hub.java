@@ -117,10 +117,55 @@ public final class Hub {
 		return _waitForMyo(durationMs) ? new Myo(_myoAddress) : null;
 	}
 	
-	private native long _addDeviceListener(DeviceListener listener);
+	private static boolean isImplemented(DeviceListener listener, String name, Class<?>... paramTypes) {
+		try {
+			return listener.getClass().getMethod(name, paramTypes).getDeclaringClass().equals(DeviceListener.class);
+		} 
+		//Should never happen
+		catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} 
+		catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	private native long _addDeviceListener(DeviceListener listener, 
+			boolean onPairImplemented,
+			boolean onUnpairImplemented,
+			boolean onConnectImplemented,
+			boolean onDisconnectImplemented,
+			boolean onArmSyncImplemented,
+			boolean onArmUnsyncImplemented,
+			boolean onUnlockImplemented,
+			boolean onLockImplemented,
+			boolean onPoseImplemented,
+			boolean onOrientationDataImplemented,
+			boolean onAccelerometerDataImplemented,
+			boolean onGyroscopeDataImplemented,
+			boolean onRssiImplemented,
+			boolean onBatteryLevelReceivedImplemented,
+			boolean onEmgDataImplemented, 
+			boolean onWarmupCompletedImplemented);
 	public void addDeviceListener(DeviceListener listener) {
 		checkExcept();
-		long address = _addDeviceListener(listener);
+		long address = _addDeviceListener(listener,
+				isImplemented(listener, "onPair", Myo.class, long.class, FirmwareVersion.class),
+				isImplemented(listener, "onUnpair", Myo.class, long.class),
+				isImplemented(listener, "onConnect", Myo.class, long.class, FirmwareVersion.class),
+				isImplemented(listener, "onDisconnect", Myo.class, long.class),
+				isImplemented(listener, "onArmSync", Myo.class, long.class, Arm.class, XDirection.class, float.class, WarmupState.class),
+				isImplemented(listener, "onArmUnsync", Myo.class, long.class),
+				isImplemented(listener, "onUnlock", Myo.class, long.class),
+				isImplemented(listener, "onLock", Myo.class, long.class),
+				isImplemented(listener, "onPose", Myo.class, long.class, Pose.class),
+				isImplemented(listener, "onOrientationData", Myo.class, long.class, Quaternion.class),
+				isImplemented(listener, "onAccelerometerData", Myo.class, long.class, Vector3.class),
+				isImplemented(listener, "onGyroscopeData", Myo.class, long.class, Vector3.class),
+				isImplemented(listener, "onRssi", Myo.class, long.class, byte.class),
+				isImplemented(listener, "onBatteryLevelReceived", Myo.class, long.class, byte.class),
+				isImplemented(listener, "onEmgData", Myo.class, long.class, byte[].class),
+				isImplemented(listener, "onWarmupCompleted", Myo.class, long.class, WarmupResult.class));
 		deviceListenerAddresses.put(listener, address);
 	}
 	

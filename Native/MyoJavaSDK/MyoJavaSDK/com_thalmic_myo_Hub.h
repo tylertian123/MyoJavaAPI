@@ -62,10 +62,10 @@ extern "C" {
 	/*
 	* Class:     com_thalmic_myo_Hub
 	* Method:    _addDeviceListener
-	* Signature: (Lcom/thalmic/myo/DeviceListener;)J
+	* Signature: (Lcom/thalmic/myo/DeviceListener;ZZZZZZZZZZZZZZZZ)J
 	*/
 	JNIEXPORT jlong JNICALL Java_com_thalmic_myo_Hub__1addDeviceListener
-	(JNIEnv *, jobject, jobject);
+	(JNIEnv *, jobject, jobject, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean, jboolean);
 
 	/*
 	* Class:     com_thalmic_myo_Hub

@@ -21,7 +21,7 @@ public:
 	jclass listenerClass;
 
 	JavaVM *jvm;
-	
+
 	jclass myoClass, firmwareVersionClass, armClass, xDirectionClass, warmupStateClass, poseClass,
 		quaternionClass, vector3Class, warmupResultClass;
 
@@ -55,7 +55,7 @@ public:
 		}
 		return env;
 	}
-	
+
 	static jclass makeGlobal(JNIEnv *env, jclass clazz) {
 		jclass ref = (jclass)env->NewGlobalRef(clazz);
 		if (!ref) {
@@ -65,7 +65,24 @@ public:
 		return ref;
 	}
 
-	ListenerWrapper(jobject listener, JNIEnv *env) {
+	ListenerWrapper(jobject listener, JNIEnv *env,
+		jboolean onPairImplemented,
+		jboolean onUnpairImplemented,
+		jboolean onConnectImplemented,
+		jboolean onDisconnectImplemented,
+		jboolean onArmSyncImplemented,
+		jboolean onArmUnsyncImplemented,
+		jboolean onUnlockImplemented,
+		jboolean onLockImplemented,
+		jboolean onPoseImplemented,
+		jboolean onOrientationDataImplemented,
+		jboolean onAccelerometerDataImplemented,
+		jboolean onGyroscopeDataImplemented,
+		jboolean onRssiImplemented,
+		jboolean onBatteryLevelReceivedImplemented,
+		jboolean onEmgDataImplemented,
+		jboolean onWarmupCompletedImplemented) {
+
 		jint result = env->GetJavaVM(&jvm);
 		if (result != JNI_OK) {
 			THROW_JNI_EXCEPTION(env, (string("Unexpected error: Cannot get JVM pointer: ") + to_string(result)).c_str());
@@ -77,33 +94,60 @@ public:
 			THROW_JNI_EXCEPTION(env, "Failed to make global reference for object; JVM is out of memory");
 			return;
 		}
-
-		onPairMid = env->GetMethodID(listenerClass, "onPair", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
-		onUnpairMid = env->GetMethodID(listenerClass, "onUnpair", "(Lcom/thalmic/myo/Myo;J)V");
-		onConnectMid = env->GetMethodID(listenerClass, "onConnect", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
-		onDisconnectMid = env->GetMethodID(listenerClass, "onDisconnect", "(Lcom/thalmic/myo/Myo;J)V");
-		onArmSyncMid = env->GetMethodID(listenerClass, "onArmSync", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Arm;Lcom/thalmic/myo/XDirection;FLcom/thalmic/myo/WarmupState;)V");
-		onArmUnsyncMid = env->GetMethodID(listenerClass, "onArmUnsync", "(Lcom/thalmic/myo/Myo;J)V");
-		onLockMid = env->GetMethodID(listenerClass, "onLock", "(Lcom/thalmic/myo/Myo;J)V");
-		onUnlockMid = env->GetMethodID(listenerClass, "onUnlock", "(Lcom/thalmic/myo/Myo;J)V");
-		onPoseMid = env->GetMethodID(listenerClass, "onPose", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Pose;)V");
-		onOrientationDataMid = env->GetMethodID(listenerClass, "onOrientationData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Quaternion;)V");
-		onAccelerometerDataMid = env->GetMethodID(listenerClass, "onAccelerometerData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Vector3;)V");
-		onGyroscopeDataMid = env->GetMethodID(listenerClass, "onGyroscopeData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Vector3;)V");
-		onRssiMid = env->GetMethodID(listenerClass, "onRssi", "(Lcom/thalmic/myo/Myo;JB)V");
-		onBatteryLevelReceivedMid = env->GetMethodID(listenerClass, "onBatteryLevelReceived", "(Lcom/thalmic/myo/Myo;JB)V");
-		onEmgDataMid = env->GetMethodID(listenerClass, "onEmgData", "(Lcom/thalmic/myo/Myo;J[B)V");
-		onWarmupCompletedMid = env->GetMethodID(listenerClass, "onWarmupCompleted", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/WarmupResult;)V");
+		if(onPairImplemented)
+			onPairMid = env->GetMethodID(listenerClass, "onPair", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
+		if(onUnpairImplemented)
+			onUnpairMid = env->GetMethodID(listenerClass, "onUnpair", "(Lcom/thalmic/myo/Myo;J)V");
+		if(onConnectImplemented)
+			onConnectMid = env->GetMethodID(listenerClass, "onConnect", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/FirmwareVersion;)V");
+		if(onDisconnectImplemented)
+			onDisconnectMid = env->GetMethodID(listenerClass, "onDisconnect", "(Lcom/thalmic/myo/Myo;J)V");
+		if(onArmSyncImplemented)
+			onArmSyncMid = env->GetMethodID(listenerClass, "onArmSync", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Arm;Lcom/thalmic/myo/XDirection;FLcom/thalmic/myo/WarmupState;)V");
+		if(onArmUnsyncImplemented)
+			onArmUnsyncMid = env->GetMethodID(listenerClass, "onArmUnsync", "(Lcom/thalmic/myo/Myo;J)V");
+		if(onLockImplemented)
+			onLockMid = env->GetMethodID(listenerClass, "onLock", "(Lcom/thalmic/myo/Myo;J)V");
+		if(onUnlockImplemented)
+			onUnlockMid = env->GetMethodID(listenerClass, "onUnlock", "(Lcom/thalmic/myo/Myo;J)V");
+		if(onPoseImplemented)
+			onPoseMid = env->GetMethodID(listenerClass, "onPose", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Pose;)V");
+		if(onOrientationDataImplemented)
+			onOrientationDataMid = env->GetMethodID(listenerClass, "onOrientationData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Quaternion;)V");
+		if(onAccelerometerDataImplemented)
+			onAccelerometerDataMid = env->GetMethodID(listenerClass, "onAccelerometerData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Vector3;)V");
+		if(onGyroscopeDataImplemented)
+			onGyroscopeDataMid = env->GetMethodID(listenerClass, "onGyroscopeData", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/Vector3;)V");
+		if(onRssiImplemented)
+			onRssiMid = env->GetMethodID(listenerClass, "onRssi", "(Lcom/thalmic/myo/Myo;JB)V");
+		if(onBatteryLevelReceivedImplemented)
+			onBatteryLevelReceivedMid = env->GetMethodID(listenerClass, "onBatteryLevelReceived", "(Lcom/thalmic/myo/Myo;JB)V");
+		if(onEmgDataImplemented)
+			onEmgDataMid = env->GetMethodID(listenerClass, "onEmgData", "(Lcom/thalmic/myo/Myo;J[B)V");
+		if(onWarmupCompletedImplemented)
+			onWarmupCompletedMid = env->GetMethodID(listenerClass, "onWarmupCompleted", "(Lcom/thalmic/myo/Myo;JLcom/thalmic/myo/WarmupResult;)V");
 
 		myoClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Myo"));
-		firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
-		armClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Arm"));
-		xDirectionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/XDirection"));
-		warmupStateClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupState"));
-		poseClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Pose"));
-		quaternionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Quaternion"));
-		vector3Class = makeGlobal(env, env->FindClass("com/thalmic/myo/Vector3"));
-		warmupResultClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupResult"));
+		if (onPairImplemented || onConnectImplemented) {
+			firmwareVersionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/FirmwareVersion"));
+		}
+		if (onArmSyncImplemented) {
+			armClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Arm"));
+			xDirectionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/XDirection"));
+			warmupStateClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupState"));
+		}
+		if (onPoseImplemented) {
+			poseClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Pose"));
+		}
+		if (onOrientationDataImplemented) {
+			quaternionClass = makeGlobal(env, env->FindClass("com/thalmic/myo/Quaternion"));
+		}
+		if (onGyroscopeDataImplemented || onAccelerometerDataImplemented) {
+			vector3Class = makeGlobal(env, env->FindClass("com/thalmic/myo/Vector3"));
+		}
+		if (onWarmupCompletedImplemented) {
+			warmupResultClass = makeGlobal(env, env->FindClass("com/thalmic/myo/WarmupResult"));
+		}
 
 		myoConstructor = env->GetMethodID(myoClass, "<init>", "(J)V");
 		firmwareVersionConstructor = env->GetMethodID(firmwareVersionClass, "<init>", "()V");
@@ -187,7 +231,7 @@ public:
 		return fv;
 	}
 	jobject createQuaternion(JNIEnv *env, const Quaternion<float> *q) {
-		jobject quatObject = env->NewObject(quaternionClass, quaternionConstructor, 
+		jobject quatObject = env->NewObject(quaternionClass, quaternionConstructor,
 			static_cast<jdouble>(q->x()), static_cast<jdouble>(q->y()), static_cast<jdouble>(q->z()), static_cast<jdouble>(q->w()));
 		if (env->ExceptionCheck() == JNI_TRUE) {
 			cerr << "Exception when creating Quaternion object" << endl;
@@ -212,7 +256,7 @@ public:
 	void onPair(Myo *myo, uint64_t timestamp, FirmwareVersion firmwareVersion) override {
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
-		jlong time = (jlong) timestamp;
+		jlong time = (jlong)timestamp;
 		jobject fv = createFirmwareVersion(env, firmwareVersion);
 
 		env->CallVoidMethod(jlistener, onPairMid, myoObject, time, fv);
@@ -221,7 +265,7 @@ public:
 	void onUnpair(Myo *myo, uint64_t timestamp) override {
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
-		jlong time = (jlong) timestamp;
+		jlong time = (jlong)timestamp;
 
 		env->CallVoidMethod(jlistener, onUnpairMid, myoObject, time);
 	}
@@ -229,7 +273,7 @@ public:
 	void onConnect(Myo *myo, uint64_t timestamp, FirmwareVersion firmwareVersion) override {
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
-		jlong time = (jlong) timestamp;
+		jlong time = (jlong)timestamp;
 		jobject fv = createFirmwareVersion(env, firmwareVersion);
 
 		env->CallVoidMethod(jlistener, onConnectMid, myoObject, time, fv);
@@ -238,7 +282,7 @@ public:
 	void onDisconnect(Myo *myo, uint64_t timestamp) override {
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
-		jlong time = (jlong) timestamp;
+		jlong time = (jlong)timestamp;
 
 		env->CallVoidMethod(jlistener, onDisconnectMid, myoObject, time);
 	}
@@ -293,10 +337,10 @@ public:
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
 		jlong time = (jlong)timestamp;
-		
+
 		env->CallVoidMethod(jlistener, onArmUnsyncMid, myoObject, time);
 	}
-	
+
 	void onLock(Myo *myo, uint64_t timestamp) override {
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
@@ -397,7 +441,7 @@ public:
 		JNIEnv *env = getJNIEnv();
 		jobject myoObject = createMyo(env, myo);
 		jlong time = (jlong)timestamp;
-		
+
 		jbyteArray emgArray = env->NewByteArray(8);
 		env->SetByteArrayRegion(emgArray, 0, 8, emg);
 
@@ -471,7 +515,7 @@ JNIEXPORT void JNICALL Java_com_thalmic_myo_Hub__1runOnce(JNIEnv *env, jobject o
 
 JNIEXPORT jboolean JNICALL Java_com_thalmic_myo_Hub__1waitForMyo(JNIEnv *env, jobject obj, jint duration) {
 	Myo *myo = getPointer(env, obj)->waitForMyo(duration);
-	
+
 	if (!myo) {
 		return false;
 	}
@@ -481,10 +525,44 @@ JNIEXPORT jboolean JNICALL Java_com_thalmic_myo_Hub__1waitForMyo(JNIEnv *env, jo
 	return true;
 }
 
-JNIEXPORT jlong JNICALL Java_com_thalmic_myo_Hub__1addDeviceListener(JNIEnv *env, jobject obj, jobject listener) {
-	ListenerWrapper *wrapper = new ListenerWrapper(listener, env);
+JNIEXPORT jlong JNICALL Java_com_thalmic_myo_Hub__1addDeviceListener(JNIEnv *env, jobject obj, jobject listener,
+	jboolean onPairImplemented,
+	jboolean onUnpairImplemented,
+	jboolean onConnectImplemented,
+	jboolean onDisconnectImplemented,
+	jboolean onArmSyncImplemented,
+	jboolean onArmUnsyncImplemented,
+	jboolean onUnlockImplemented,
+	jboolean onLockImplemented,
+	jboolean onPoseImplemented,
+	jboolean onOrientationDataImplemented,
+	jboolean onAccelerometerDataImplemented,
+	jboolean onGyroscopeDataImplemented,
+	jboolean onRssiImplemented,
+	jboolean onBatteryLevelReceivedImplemented,
+	jboolean onEmgDataImplemented,
+	jboolean onWarmupCompletedImplemented) {
+
+	ListenerWrapper *wrapper = new ListenerWrapper(listener, env,
+		onPairImplemented,
+		onUnpairImplemented,
+		onConnectImplemented,
+		onDisconnectImplemented,
+		onArmSyncImplemented,
+		onArmUnsyncImplemented,
+		onUnlockImplemented,
+		onLockImplemented,
+		onPoseImplemented,
+		onOrientationDataImplemented,
+		onAccelerometerDataImplemented,
+		onGyroscopeDataImplemented,
+		onRssiImplemented,
+		onBatteryLevelReceivedImplemented,
+		onEmgDataImplemented,
+		onWarmupCompletedImplemented);
+
 	getPointer(env, obj)->addListener(wrapper);
-	
+
 	return reinterpret_cast<jlong>(wrapper);
 }
 
