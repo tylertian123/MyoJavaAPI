@@ -1,6 +1,21 @@
 package com.thalmic.myo;
 
+/**
+ * Enumeration identifying a right arm or left arm. 
+ * @author Tyler Tian
+ *
+ */
 public enum Arm {
-	
-	armLeft, armRight, armUnknown;
+	/**
+	 * Left arm.
+	 */
+	armLeft, 
+	/**
+	 * Right arm.
+	 */
+	armRight,
+	/**
+	 * Unknown arm.
+	 */
+	armUnknown;
 }

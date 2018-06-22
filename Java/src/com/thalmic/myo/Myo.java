@@ -1,6 +1,6 @@
 package com.thalmic.myo;
 
-public class Myo {
+public final class Myo {
 	static {
 		System.loadLibrary("myo_jni");
 	}
