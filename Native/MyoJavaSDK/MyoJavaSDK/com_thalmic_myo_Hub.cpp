@@ -136,8 +136,8 @@ public:
 		poseDoubleTapFid = env->GetStaticFieldID(poseClass, "doubleTap", "Lcom/thalmic/myo/Pose;");
 
 		warmupResultSuccessFid = env->GetStaticFieldID(warmupResultClass, "warmupResultSuccess", "Lcom/thalmic/myo/WarmupResult;");
-		warmupResultFailedFid = env->GetStaticFieldID(warmupResultClass, "warmupResultFailedTimeout", "Lcom/thalmic/myo/WarmupResult");
-		warmupResultUnknownFid = env->GetStaticFieldID(warmupResultClass, "warmupResultUnknown", "Lcom/thalmic/myo/WarmupResult");
+		warmupResultFailedFid = env->GetStaticFieldID(warmupResultClass, "warmupResultFailedTimeout", "Lcom/thalmic/myo/WarmupResult;");
+		warmupResultUnknownFid = env->GetStaticFieldID(warmupResultClass, "warmupResultUnknown", "Lcom/thalmic/myo/WarmupResult;");
 	}
 
 	~ListenerWrapper() {
