@@ -2,7 +2,6 @@ package com.thalmic.myo;
 
 /**
  * A DeviceListener receives events about a {@link Myo}. 
- * @author Tyler Tian
  * @see Hub#addListener(DeviceListener)
  */
 public class DeviceListener {
