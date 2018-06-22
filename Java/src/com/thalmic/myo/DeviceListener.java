@@ -32,7 +32,7 @@ public class DeviceListener {
 	}
 	public void onRssi(Myo myo, long timestamp, byte rssi) {
 	}
-	public void onBatteryLevelReceived(Myo myo, long timestamp, short level) {
+	public void onBatteryLevelReceived(Myo myo, long timestamp, byte level) {
 	}
 	public void onEmgData(Myo myo, long timestamp, byte[] emg) {
 	}
