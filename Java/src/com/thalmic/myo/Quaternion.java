@@ -186,8 +186,8 @@ public class Quaternion implements Cloneable {
 	 * Note that quaternion multiplication is not commutative.<br>
 	 * <br>
 	 * This method is provided as a Java counterpart of the overloaded C++ "*" operator.
-	 * @param rhs
-	 * @return
+	 * @param rhs The quaternion to multiply by.
+	 * @return The result of the multiplication.
 	 */
 	public Quaternion multiply(Quaternion rhs) {
 		return new Quaternion(
@@ -202,7 +202,8 @@ public class Quaternion implements Cloneable {
 	 * Return this quaternion updated with the result.<br>
 	 * <br>
 	 * This method is provided as a Java counterpart of the overloaded C++ "*=" operator.
-	 * @param rhs This quaternion updated with the result.  
+	 * @param rhs The quaternion to multiply by.
+	 * @return This quaternion updated with the result.  
 	 */
 	public Quaternion multiplyEquals(Quaternion rhs) {
 		equal(multiply(rhs));
