@@ -107,6 +107,33 @@ public final class Myo {
 		_nativePointer = nativeAddress;
 	}
 	
+	/**
+	 * Returns true if <em>obj</em> refers to the same device as this {@link Myo} object.
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if(!(obj instanceof Myo)) {
+			return false;
+		}
+		Myo otherMyo = (Myo) obj;
+		
+		if(otherMyo._nativePointer == this._nativePointer) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	/**
+	 * Return the address of the native C++ {@link Myo} object.<br>
+	 * <br>
+	 * This value should only be used to test for equality with another {@link Myo} instance.
+	 * @return The address of the native C++ {@link Myo} object.
+	 */
+	public long getNativeAddress() {
+		return _nativePointer;
+	}
+	
 	//Native method that directly calls Myo::vibrate().
 	private native void _vibrate(int type);
 	/**
